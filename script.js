@@ -28,7 +28,7 @@ import { createShape } from "./shape.js";
 // For example: which notes you can play, how fast things move, the tempo.
 //const droneNote = "C3"; // the note USED
 const melody = ["C4", "D4", "E4", "G4", "A4", "C5"];//The melody the orb will play when you spin it clockwise
-const maxSpeed = 0.02;//The speed required to reach maximum volume (0 dB)
+const maxSpeed = 0.015;//The speed required to reach maximum volume (0 dB)
 
 //The centre of the screen, used to calculate angles for rotation
 const centerX = 0.5;
@@ -40,10 +40,30 @@ const droneNote = "C3";//The note used for the background drone
 // ---------- State ----------
 // State variables are the parts of your program that change over time.
 // For example: where the pointer is, how fast it's moving, or whether a drone is on.
+//Parts of the program that change over time:
+let shape;//The energy ob
+
+//Pointer tracking
+let pointerX = centerX;
+let pointerY = centerY;
+let lastPointerX = centerX;
+let lastPointerY = centerY;
+
+
+//Physics & Sound tracking
+let currentSpeed = 0;
+let totalDistance = 0;
+let totalRotation = 0;
+let currentAngle = 0;
+let melodyIndex = 0;
+let isDronePlaying = 0;
+
 
 // ---------- Sound ----------
 // Make the instruments and plug them into the speakers.
-const synth = new Tone.PolySynth(Tone.Synth).toDestination(); // can play several notes at once
+const synth = new Tone.PolySynth(Tone.Synth).toDestination(); // can play several notes at once: a sustained "drone" note and short "melody notes on top of it."
+synth.volume.value = -60;//We start the volume at -60 decibels, which is effectively silent.
+
 
 // ---------- Update ----------
 // Update the state. This is called every 100ms.
@@ -66,18 +86,32 @@ function pointerDown(event) {
   synth.triggerAttackRelease(note, "8n"); // play the note for an eighth note
 }
 
+
+function pointerMove(event) {
+  //Record position so the udate loop can do the math
+  pointerX = event.clientX / window.innerWidth;
+  pointerY = event.clientY / window.innerHeight;
+}
+
 // ---------- Setup ----------
 // Setup is run once, at the start of the program. It sets everything up for us!
 function setup() {
   update(); // start the update loop
   use(); // start the use loop
 
+  //Create the energy Orb
+  shape = createShape("energy-orb");
+  shape.setSize(250);
+  shape.setPosition(centerX, centerY);
+  shape.setColour(0, 50, 0);//Start dark
+
   // Example: a shape near the middle of the window. Replace it with your own.
-  const example = createShape("example");
-  example.setPosition(0.5, 0.5);
+  //const example = createShape("example");
+  //example.setPosition(0.5, 0.5);
 
   // Put your event listener code here
   window.addEventListener("pointerdown", pointerDown);
+  window.addEventListener("pointermove", pointerMove);
 }
 
 setup(); // Always remember to call setup()!
