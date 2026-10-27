@@ -101,7 +101,61 @@ lastPointerY = pointerY;
 // Use the state to make sound and move shapes. This is called every 100ms.
 
 function use() {
-  setTimeout(use, 100); // call use() again in 100 milliseconds
+  if (shape) {
+    //1. Volume: Faster = Louder
+    let volume = -60 + (currentSpeedn/ maxSpeed) * 60;
+  }
+  if (volume > 0) volume = 0;
+  if (currentSpeed < 0.001) volume = -60; //Snap to silence if barely moving
+  synth.volume.rampTo(volume, 0.1);
+
+
+  //2.Color: Further = Brighter
+  let brightness = Math.min(totalDistance * brightnessScale, 225);
+  shape.setColour(brightness, 50, brightness);
+
+
+  //3.Pitch & Melody: Clockwise = Higher/Melody
+  if (currentSpeed > 0.005) {
+
+    if (totalRotation > 0) {
+      synth.detune.value = 200;
+    } else {
+     synth,detune.value = -200;
+    }
+
+    if (totalRotation > 360) {
+      totalRotation -= 360;
+
+      for (let i = 0; i < melody.length; i++) {
+       if (i === melodyIndex) {
+        if (i === melody.length - 1) {
+          melodyIndex = 0;
+        } else {
+          melodyIndex = i + 1;
+        }
+        synth.triggerAttackRelease(melody[melodyIndex], "8n");
+        break;//Exit the loop once the note is played
+       }
+     } //else {
+      //synth.detune.value = 0;
+    }
+
+
+
+    //4. Stopping completely lowers the sound until it disappears
+    if (currentSpeed > 0.001 && !isDronePlaying) {
+      synth.triggerAttack(droneNote);
+      isDronePlaying = true;
+    }  else if (currentSpeed <= 0.001 && isDronePlaying) {
+      synth.triggerRelease(droneNote);
+      isDronePlaying = false;
+    }
+
+  }
+
+setTimeout(use, 100); // call use() again in 100 milliseconds, loop
+
 }
 
 // ---------- Controls (Event Handlers) ----------
