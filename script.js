@@ -66,13 +66,39 @@ synth.volume.value = -60;//We start the volume at -60 decibels, which is effecti
 
 
 // ---------- Update ----------
-// Update the state. This is called every 100ms.
+// Update the state. This is called every 100ms.Calculates the math based on pointer position
 function update() {
-  setTimeout(update, 100); // call update() again in 100 milliseconds
+  let dx = pointerX - lastPointerX;
+  let dy = pointerY - lastPointerY;
+  let distance = Math.hypot(dx, dy);
+
+  //Update current speed
+  currentSpeed = distance;
+
+  //Add total distance(for brightness)
+  totalDistance += distance;
+
+  //Calculate rotation (for pitch and melody)
+  let angle = Math.atan2(pointerY - centerY, pointerX - centerX) * (180 / Math.PI);
+  let angleDelta = angle - currentAngle;
+
+  //Handle the jump when crossing 180 to -180 degrees
+  if (angleDelta > 180) angleDelta -= 360;
+  if (angleDelta < -180) angleDelta += 360;
+
+  totalRotation += angleDelta;
+  currentAngle = angle;
+
+  //Store curent position fot the next move?
+  lastPointerX = pointerX;
+  lastPointerY = pointerY;
+
+ setTimeout(update, 100); // call update() again in 100 milliseconds
 }
 
 // ---------- Use ----------
 // Use the state to make sound and move shapes. This is called every 100ms.
+
 function use() {
   setTimeout(use, 100); // call use() again in 100 milliseconds
 }
