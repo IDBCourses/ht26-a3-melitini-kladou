@@ -72,26 +72,27 @@ function update() {
   let dy = pointerY - lastPointerY;
   let distance = Math.hypot(dx, dy);
 
-  //Update current speed
-  currentSpeed = distance;
+//Update current speed
+currentSpeed = distance;
 
-  //Add total distance(for brightness)
-  totalDistance += distance;
+//Add to total distance (for brightness)
+totalDistance += distance;
 
-  //Calculate rotation (for pitch and melody)
-  let angle = Math.atan2(pointerY - centerY, pointerX - centerX) * (180 / Math.PI);
-  let angleDelta = angle - currentAngle;
+//Calculate rotation (for pitch and melody)
+let angle = Math.atan2(pointerY - centerY, pointerX - centerX) * (180 / Math.PI);
+let angleDelta = angle - currentAngle;
 
-  //Handle the jump when crossing 180 to -180 degrees
-  if (angleDelta > 180) angleDelta -= 360;
-  if (angleDelta < -180) angleDelta += 360;
+//Hnadle the jump when crossing 180 to -180 degrees
+if (angleDelta > 180) angleDelta -= 360;
+if (angleDelta < -180) angleDelta += 360;
 
-  totalRotation += angleDelta;
-  currentAngle = angle;
+totalRotation += angleDelta;
+currentAngle = angle;
 
-  //Store curent position fot the next move?
-  lastPointerX = pointerX;
-  lastPointerY = pointerY;
+//Store current position for the next move?
+lastPointerX = pointerX;
+lastPointerY = pointerY;
+
 
  setTimeout(update, 100); // call update() again in 100 milliseconds
 }
