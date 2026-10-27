@@ -26,8 +26,17 @@ import { createShape } from "./shape.js";
 // ---------- Settings ----------
 // Settings variables should contain all of the "fixed" parts of your programs
 // For example: which notes you can play, how fast things move, the tempo.
-const note = "C4"; // the note played when the pointer goes down
+//const droneNote = "C3"; // the note USED
+const melody = ["C4", "D4", "E4", "G4", "A4", "C5"];//The melody the orb will play when you spin it clockwise
+const maxSpeed = 0.02;//The speed required to reach maximum volume (0 dB)
 
+//The centre of the screen, used to calculate angles for rotation
+const centerX = 0.5;
+const centerY = 0.5;
+
+const brightnessScale = 200;//How much to multiply total distance by to get the color brightness
+
+const droneNote = "C3";//The note used for the background drone
 // ---------- State ----------
 // State variables are the parts of your program that change over time.
 // For example: where the pointer is, how fast it's moving, or whether a drone is on.
