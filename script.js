@@ -103,12 +103,12 @@ lastPointerY = pointerY;
 function use() {
   if (shape) {
     //1. Volume: Faster = Louder
-    let volume = -60 + (currentSpeedn/ maxSpeed) * 60;
-  }
+    let volume = -60 + (currentSpeed/ maxSpeed) * 60;
+
   if (volume > 0) volume = 0;
   if (currentSpeed < 0.001) volume = -60; //Snap to silence if barely moving
   synth.volume.rampTo(volume, 0.1);
-
+  }
 
   //2.Color: Further = Brighter
   let brightness = Math.min(totalDistance * brightnessScale, 225);
@@ -118,13 +118,24 @@ function use() {
   //3.Pitch & Melody: Clockwise = Higher/Melody
   if (currentSpeed > 0.005) {
 
-    if (totalRotation > 0) {
-      synth.detune.value = 200;
-    } else {
-     synth,detune.value = -200;
-    }
+    //Pitch Control
+    //If moving counter-clockwise, play a higher drone note.
+    //If moving clockwise, plat the normal drone note.
+  if (totalRotation <= 0) {
+    //To go higher, we release C3 and play C4 (one octave up)
+    synth.triggerRelease("C3");
+    synth.triggerAttack("C4");
+  } else {
+    //Clockwise: revert back to normal note
+    synth.triggerRelease("C4");
+    synth.triggerAttack("C3");
 
-    if (totalRotation > 360) {
+  }
+
+
+  //Melody control
+  //Only play the melody if moving clockwise
+    if (totalRotation > 0 && totalRotation > 360) {
       totalRotation -= 360;
 
       for (let i = 0; i < melody.length; i++) {
@@ -163,8 +174,8 @@ setTimeout(use, 100); // call use() again in 100 milliseconds, loop
 function pointerDown(event) {
   Tone.start(); // browsers only allow sound after the player has pressed something
 
-  console.log("Pointer down at", event.clientX, event.clientY);
-  synth.triggerAttackRelease(note, "8n"); // play the note for an eighth note
+  //console.log("Pointer down at", event.clientX, event.clientY);
+  //synth.triggerAttackRelease(note, "8n"); // play the note for an eighth note
 }
 
 
@@ -177,10 +188,8 @@ function pointerMove(event) {
 // ---------- Setup ----------
 // Setup is run once, at the start of the program. It sets everything up for us!
 function setup() {
-  update(); // start the update loop
-  use(); // start the use loop
 
-  //Create the energy Orb
+ //Create the energy Orb
   shape = createShape("energy-orb");
   shape.setSize(250);
   shape.setPosition(centerX, centerY);
@@ -193,6 +202,11 @@ function setup() {
   // Put your event listener code here
   window.addEventListener("pointerdown", pointerDown);
   window.addEventListener("pointermove", pointerMove);
+
+update(); // start the update loop
+  use(); // start the use loop
+
 }
 
 setup(); // Always remember to call setup()!
+
