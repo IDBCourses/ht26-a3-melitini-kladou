@@ -60,6 +60,13 @@ let isDronePlaying = 0;
 
 let speeds = [];//Tracks recent speeds for the avarage
 
+//Dragging the shape
+let isDragging = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+let startX = 0.5;//Center of the screen
+let startY = 0.5;
+
 // ---------- Sound ----------
 // Make the instruments and plug them into the speakers.
 const synth = new Tone.PolySynth(Tone.Synth).toDestination(); // can play several notes at once: a sustained "drone" note and short "melody notes on top of it."
@@ -139,9 +146,10 @@ let averageSpeed = useAverage();
 
 
   //3.Color: Further = Brighter
-  let brightness = Math.min(totalDistance * brightnessScale, 225);
-  shape.setColour(brightness, 50, brightness);
-
+  if (!isDragging){
+  let brightness = Math.min(totalDistance * brightnessScale, 200);
+  shape.setColour(brightness + 55, 50, brightness + 55);
+  }
 
   //4.Pitch & Melody
   if (averageSpeed > 0.005) {
@@ -204,10 +212,25 @@ let averageSpeed = useAverage();
 // ---------- Controls (Event Handlers) ----------
 // Runs every time the pointer goes down: a click, a tap or a pen touch.
 function pointerDown(event) {
-  Tone.start(); // browsers only allow sound after the player has pressed something
+  Tone.start(); // Unlock audio
+
+  //Start the drag
+  isDragging = true;
+
+  pointerX = event.clientX / window.innerWidth;
+  pointerY = event.clientY / window.innerHeight;
+
+  //Calculate where we grabbed the shape
+  dragOffsetX = pointerX - centerX;
+  dragOffsetY = pointerY - centerY;
 
   //console.log("Pointer down at", event.clientX, event.clientY);
   //synth.triggerAttackRelease(note, "8n"); // play the note for an eighth note
+}
+
+function pointerUp(event) {
+  //Stop the drag when the trackpad is released
+  isDragging = false;
 }
 
 
@@ -215,6 +238,28 @@ function pointerMove(event) {
   //Record position so the udate loop can do the math
   pointerX = event.clientX / window.innerWidth;
   pointerY = event.clientY / window.innerHeight;
+
+if (isDragging) {
+  //1.Move the shape, calculate new position
+  let newX = pointerX - dragOffsetX;
+  let newY = pointerY - dragOffsetY;
+  //shape.setPosition(newX, newY);
+
+  //SAFETY CHECK: Only move the shape if the math worked
+  if (!isNaN(newX) && !isNaN(newY)) {
+    shape.setPosition(newX, newY);
+  }
+
+  //2.Calculate how far it is from the center of the screen
+  let distFromCenter = Math.hypot(newX - centerX, newY - centerY);
+
+  //3.Make it brighter the further it goes(multiplying by 500 makes it hit max brightness)
+  let brightness = Math.min(distFromCenter * 500, 200);
+
+  //4.Update the color
+  shape.setColour(brightness + 55, 50, brightness + 55);
+ }
+
 }
 
 // ---------- Setup ----------
@@ -223,19 +268,19 @@ function setup() {
 
  //Create the energy Orb
   shape = createShape("energy-orb");
-  shape.setSize(250);
+  shape.setSize(150);
   shape.setPosition(centerX, centerY);
-  shape.setColour(0, 50, 0);//Start dark
+  shape.setColour(55, 50, 55);//Start VISIBLE
 
-  // Example: a shape near the middle of the window. Replace it with your own.
-  //const example = createShape("example");
-  //example.setPosition(0.5, 0.5);
-
-  // Put your event listener code here
-  window.addEventListener("pointerdown", pointerDown);
+  //Global listeners(Move and let go)
+  //We listen on the window for pointerup so it stops gragging even if you let go off the shape
   window.addEventListener("pointermove", pointerMove);
+  window.addEventListener("pointerup", pointerUp);
 
-update(); // start the update loop
+  //Shape-specific listeners (Grab and unlock audio)
+  shape.element.addEventListener("pointerdown", pointerDown);
+
+  update(); // start the update loop
   use(); // start the use loop
 
 }
