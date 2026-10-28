@@ -58,6 +58,7 @@ let currentAngle = 0;
 let melodyIndex = 0;
 let isDronePlaying = 0;
 
+let speeds = [];//Tracks recent speeds for the avarage
 
 // ---------- Sound ----------
 // Make the instruments and plug them into the speakers.
@@ -78,6 +79,8 @@ currentSpeed = distance;
 //Add to total distance (for brightness)
 totalDistance += distance;
 
+speeds.push(currentSpeed);
+
 //Calculate rotation (for pitch and melody)
 let angle = Math.atan2(pointerY - centerY, pointerX - centerX) * (180 / Math.PI);
 let angleDelta = angle - currentAngle;
@@ -97,26 +100,51 @@ lastPointerY = pointerY;
  setTimeout(update, 100); // call update() again in 100 milliseconds
 }
 
+
+
+function forgetOldest() {
+  if (speeds.length > 0) {
+    speeds.shift();//Remove the oldest speed
+  }
+}
+
+
+
+function useAverage() {
+  let total = 0;
+  for (let i=0; i < speeds.length; i++) {
+    total = total + speeds[i];
+  }
+  let average = 0;
+  if (speeds.length > 0) {
+    average = total / speeds.length;
+  }
+
+  return average;//Instead of directly setting detune here, we return the average, so the use() loop can decide what to do with it.
+}
+
 // ---------- Use ----------
 // Use the state to make sound and move shapes. This is called every 100ms.
 
 function use() {
   if (shape) {
-    //1. Volume: Faster = Louder
-    let volume = -60 + (currentSpeed/ maxSpeed) * 60;
+//1. Get the average speed
+let averageSpeed = useAverage();
 
+ //2. Volume: Use averageSpeed instead of currentSpeed
+    let volume = -60 + (averageSpeed/ maxSpeed) * 60;
   if (volume > 0) volume = 0;
-  if (currentSpeed < 0.001) volume = -60; //Snap to silence if barely moving
+  if (averageSpeed < 0.001) volume = -60;
   synth.volume.rampTo(volume, 0.1);
-  }
 
-  //2.Color: Further = Brighter
+
+  //3.Color: Further = Brighter
   let brightness = Math.min(totalDistance * brightnessScale, 225);
   shape.setColour(brightness, 50, brightness);
 
 
-  //3.Pitch & Melody: Clockwise = Higher/Melody
-  if (currentSpeed > 0.005) {
+  //4.Pitch & Melody
+  if (averageSpeed > 0.005) {
 
     //Pitch Control
     //If moving counter-clockwise, play a higher drone note.
@@ -154,7 +182,8 @@ function use() {
 
 
 
-    //4. Stopping completely lowers the sound until it disappears
+//Drone control(Start/stop background sound)
+
     if (currentSpeed > 0.001 && !isDronePlaying) {
       synth.triggerAttack(droneNote);
       isDronePlaying = true;
@@ -162,10 +191,13 @@ function use() {
       synth.triggerRelease(droneNote);
       isDronePlaying = false;
     }
+   }
+ }
 
-  }
 
-setTimeout(use, 100); // call use() again in 100 milliseconds, loop
+  setTimeout(forgetOldest, 500);//This ensures speeds only stay in the array for 500ms
+
+  setTimeout(use, 100); // call use() again in 100 milliseconds, loop
 
 }
 
