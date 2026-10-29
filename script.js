@@ -25,40 +25,38 @@ import { createShape } from "./shape.js";
 
 // ---------- Settings ----------
 // Settings variables should contain all of the "fixed" parts of your programs
-// For example: which notes you can play, how fast things move, the tempo.
-//const droneNote = "C3"; // the note USED
+
 const melody = ["C4", "D4", "E4", "G4", "A4", "C5"];//The melody the orb will play when you spin it clockwise
-const maxSpeed = 0.015;//The speed required to reach maximum volume (0 dB)
 
 //The centre of the screen, used to calculate angles for rotation
-const centerX = 0.5;
-const centerY = 0.5;
 
-const brightnessScale = 200;//How much to multiply total distance by to get the color brightness
+const startX = 0.5;
+const startY = 0.5;
 
-const droneNote = "C3";//The note used for the background drone
+const droneNote = "C3";
 // ---------- State ----------
 // State variables are the parts of your program that change over time.
 // For example: where the pointer is, how fast it's moving, or whether a drone is on.
 //Parts of the program that change over time:
-let shape;//The energy ob
-
-//Pointer tracking
-let pointerX = centerX;
-let pointerY = centerY;
-let lastPointerX = centerX;
-let lastPointerY = centerY;
+let circle;//The energy ob
 
 
-//Physics & Sound tracking
-let currentSpeed = 0;
-let totalDistance = 0;
-let totalRotation = 0;
-let currentAngle = 0;
-let melodyIndex = 0;
-let isDronePlaying = 0;
+//Pointer tstate
+let pointerX = startX;
+let pointerY = startY;
 
-let speeds = [];//Tracks recent speeds for the avarage
+let previousPointerX = startX;
+let previousPointerY = startY;
+
+let isDragging = false;
+
+let movementSpeed = 0;
+let totalDistanceTravelled = 0;
+
+let melodyIsPlaying = false;
+let droneIsPlaying = false;
+
+
 
 // ---------- Sound ----------
 // Make the instruments and plug them into the speakers.
@@ -66,62 +64,84 @@ const synth = new Tone.PolySynth(Tone.Synth).toDestination(); // can play severa
 synth.volume.value = -60;//We start the volume at -60 decibels, which is effectively silent.
 
 
+
+function playMelody() {
+  if (!melodyIsPlaying) {
+    return;
+  }
+
+  for (let i = 0; i < melody.length; i++) {
+    if (melody[i] === "rest") {
+      continue;
+    }
+    synth.triggerAttackRelease(melody[i], "8n", Tone.now() + i * 0.4);
+  }
+
+  setTimeout(playMelody, 3000);
+}
+
+
 // ---------- Update ----------
 // Update the state. This is called every 100ms.Calculates the math based on pointer position
 function update() {
-  let dx = pointerX - lastPointerX;
-  let dy = pointerY - lastPointerY;
-  let distance = Math.hypot(dx, dy);
+  if (!circle) {
+    setTimeout(update, 16);
+    return;
+  }
 
-//Update current speed
-currentSpeed = distance;
+//Speed controls volume
+//If speed is high, volume is 0 (loud). If speed is 0, volume is -60 (silent)
+let volume = -60 + movementSpeed * 100;
+if (volume > 0) {
+  volume = 0;
+}
 
-//Add to total distance (for brightness)
-totalDistance += distance;
+if (volume < -60) {
+  volume = -60;
+}
 
-speeds.push(currentSpeed);
+synth.volume.rampTo(volume, 0.1);
 
-//Calculate rotation (for pitch and melody)
-let angle = Math.atan2(pointerY - centerY, pointerX - centerX) * (180 / Math.PI);
-let angleDelta = angle - currentAngle;
+//Start drone when moving
+if (movementSpeed > 0.05 && !droneIsPlaying) {
+  synth.triggerAttack(droneNote);
+  droneIsPlaying = true;
+}
 
-//Hnadle the jump when crossing 180 to -180 degrees
-if (angleDelta > 180) angleDelta -= 360;
-if (angleDelta < -180) angleDelta += 360;
-
-totalRotation += angleDelta;
-currentAngle = angle;
-
-//Store current position for the next move?
-lastPointerX = pointerX;
-lastPointerY = pointerY;
+//Stop drone when still
+if (movementSpeed <= 0.05 && droneIsPlaying) {
+  synth.triggerRelease(droneNote);
+  droneIsPlaying = false;
+ }
 
 
- setTimeout(update, 100); // call update() again in 100 milliseconds
+ //Distance controls size
+ let size = 100 + totalDistanceTravelled * 300;
+
+ if (size > 250) {
+  size = 250;
+ }
+
+ circle.setSize(size);
+
+
+ //Gradually fade movement
+ movementSpeed *= 0.9;
+
+ totalDistanceTravelled *= 0.0995
+
+
+
+ setTimeout(update, 16); // call update() again in 16 milliseconds
 }
 
 
 
-function forgetOldest() {
-  if (speeds.length > 0) {
-    speeds.shift();//Remove the oldest speed
-  }
-}
 
 
 
-function useAverage() {
-  let total = 0;
-  for (let i=0; i < speeds.length; i++) {
-    total = total + speeds[i];
-  }
-  let average = 0;
-  if (speeds.length > 0) {
-    average = total / speeds.length;
-  }
 
-  return average;//Instead of directly setting detune here, we return the average, so the use() loop can decide what to do with it.
-}
+
 
 // ---------- Use ----------
 // Use the state to make sound and move shapes. This is called every 100ms.
@@ -129,26 +149,47 @@ function useAverage() {
 function use() {
   if (shape) {
 //1. Get the average speed
-let averageSpeed = useAverage();
+//let averageSpeed = useAverage();
 
- //2. Volume: Use averageSpeed instead of currentSpeed
-    let volume = -60 + (averageSpeed/ maxSpeed) * 60;
-  if (volume > 0) volume = 0;
-  if (averageSpeed < 0.001) volume = -60;
-  synth.volume.rampTo(volume, 0.1);
+ //1. Volume: Use averageSpeed instead of currentSpeed
+    let volume = -60 //+ (averageSpeed/ maxSpeed) * 60;
 
 
-  //3.Color: Further = Brighter
-  let brightness = Math.min(totalDistance * brightnessScale, 225);
-  shape.setColour(brightness, 50, brightness);
+
+    if (averageSpeed > 0 && maxSpeed > 0) {
+      volume = -60 + (averageSpeed / maxSpeed) * 60;
+    }
+    if (volume > 0) volume = 0;
+    if (volume < -60) volume = -60;
+
+    synth.volume.rampTo(volume, 0.1);
 
 
-  //4.Pitch & Melody
-  if (averageSpeed > 0.005) {
+  //2.Color: Further = Brighter
+  //If dragging, base color on distance from center.If not, base on total movement.
+   let brightness = Math.min(totalDistance * 200, 200);
+  if (isDragging){
+  let distanceFromCenter = Math.hypot(pointerX - centerX, pointerY - centerY);
+  brightness = Math.min(distanceFromCenter * 500, 200);
+ } else {
+  brightness = Math.min(totalDistance * 200, 200);
+ }
+ shape.setColour(brightness + 55, 50, brightness + 55);//Glowing pink/purple
 
-    //Pitch Control
+  //3.Drone sound
+  if (averageSpeed > 0.001 && !isDronePlaying) {
+    synth.triggerAttack(droneNote);
+    isDronePlaying = true;
+  } else if (averageSpeed <- 0.001 && isDronePlaying) {
+    synth.triggerRelease(droneNote);
+    isDronePlaying = false;
+  }
+
+     //Pitch Control
     //If moving counter-clockwise, play a higher drone note.
     //If moving clockwise, plat the normal drone note.
+    if (averageSpeed > 0.005) {
+
   if (totalRotation <= 0) {
     //To go higher, we release C3 and play C4 (one octave up)
     synth.triggerRelease("C3");
@@ -159,7 +200,7 @@ let averageSpeed = useAverage();
     synth.triggerAttack("C3");
 
   }
-
+}
 
   //Melody control
   //Only play the melody if moving clockwise
@@ -176,67 +217,107 @@ let averageSpeed = useAverage();
         synth.triggerAttackRelease(melody[melodyIndex], "8n");
         break;//Exit the loop once the note is played
        }
-     } //else {
-      //synth.detune.value = 0;
+
+     }
+
     }
 
+//Clean up old speeds
+if (speeds.length > 5) speeds.shift();
 
+setTimeout(use, 100); // call use() again in 100 milliseconds, loop
 
-//Drone control(Start/stop background sound)
-
-    if (currentSpeed > 0.001 && !isDronePlaying) {
-      synth.triggerAttack(droneNote);
-      isDronePlaying = true;
-    }  else if (currentSpeed <= 0.001 && isDronePlaying) {
-      synth.triggerRelease(droneNote);
-      isDronePlaying = false;
-    }
-   }
  }
-
-
-  setTimeout(forgetOldest, 500);//This ensures speeds only stay in the array for 500ms
-
-  setTimeout(use, 100); // call use() again in 100 milliseconds, loop
-
 }
+
+
 
 // ---------- Controls (Event Handlers) ----------
 // Runs every time the pointer goes down: a click, a tap or a pen touch.
+//Only record data, they do not calculate physics
 function pointerDown(event) {
-  Tone.start(); // browsers only allow sound after the player has pressed something
 
-  //console.log("Pointer down at", event.clientX, event.clientY);
-  //synth.triggerAttackRelease(note, "8n"); // play the note for an eighth note
+  Tone.start();
+
+   isDragging = true;
+
+
+//Record exactly where we clicked relative to the center
+  pointerX = event.clientX / window.innerWidth;
+  pointerY = event.clientY / window.innerHeight;
+}
+
+
+
+function pointerUp() {
+  //Stop the drag when the trackpad is released
+  isDragging = false;
 }
 
 
 function pointerMove(event) {
-  //Record position so the udate loop can do the math
+  //Record pointer positions
   pointerX = event.clientX / window.innerWidth;
   pointerY = event.clientY / window.innerHeight;
+
+  //If dragging, move the shape
+  if (isDragging) {
+    shape.setPosition(pointerX, pointerY);
+  }
+
+
+  //Calculate distance and speed
+  const changeX = pointerX - previousPointerX;
+  const changeY = pointerY - previousPointerY;
+  const distanceMoved = Math.hypot(changeX, changeY);
+
+  movementSpeed = distanceMoved * 10;
+  totalDistanceTravelled += distanceMoved;
+
+
+
+  previousPointerX = pointerX;
+  previousPointerY = pointerY;
+
+
+}
+
+
+
+function handleCircleClick() {
+
+  Tone.start();
+
+  melodyIsPlaying = !melodyIsPlaying;
+
+  if (melodyIsPlaying) {
+    playMelody();
+  }
 }
 
 // ---------- Setup ----------
 // Setup is run once, at the start of the program. It sets everything up for us!
 function setup() {
+  console.log("setup running");
 
  //Create the energy Orb
-  shape = createShape("energy-orb");
-  shape.setSize(250);
-  shape.setPosition(centerX, centerY);
-  shape.setColour(0, 50, 0);//Start dark
+  circle = createShape("circle");
 
-  // Example: a shape near the middle of the window. Replace it with your own.
-  //const example = createShape("example");
-  //example.setPosition(0.5, 0.5);
+  circle.setSize(100);
+  circle.setPosition(startX, startY);
+  circle.setColour(255, 100, 255);//pink
 
-  // Put your event listener code here
-  window.addEventListener("pointerdown", pointerDown);
+  //Global listeners(Move and let go)
+  //We listen on the window for pointerup so it stops gragging even if you let go off the shape
   window.addEventListener("pointermove", pointerMove);
+  window.addEventListener("pointerup", pointerUp);
 
-update(); // start the update loop
-  use(); // start the use loop
+  //Shape-specific listeners (Grab and unlock audio)
+  circle.element.addEventListener("pointerdown", pointerDown);
+  circle.element.addEventListener("click", handleCircleClick);
+
+  update(); // start the update loop
+  //use(); // start the use loop
 
 }
 
