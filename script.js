@@ -55,7 +55,8 @@ const state = {
   isDragging: false,
 };
 
-//Shapes
+
+
 
 
 
@@ -159,13 +160,14 @@ function use() {
 //Circle grows with speed
   circle.setSize(100 + state.averageSpeed * 2000);
 
-//Square brightnes with movement
-  const brightness = Math.min(255, state.totalDistance * 3000);
+//Circle: colour changes with speed
+if (state.isDragging) {
+const hue = Math.min(state.averageSpeed * 10000, 360);
 
-  square.setColour(300, 80, Math.min(80, state.totalDistance * 20));
-
-  requestAnimationFrame(use);
-
+circle.setColour(hue, 100, 50);
+ }
+ 
+ requestAnimationFrame(use);
 
 }
 
