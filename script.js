@@ -130,6 +130,10 @@ if (state.averageSpeed <= 0.0001 && dronePlaying) {
   synth.triggerAttackRelease(frequency, "16n");
   }
 
+  if (!state.isDragging) {
+    state.averageSpeed *= 0.9;
+  }
+
  }
 
  setTimeout(update, 100); // call update() again in 100 milliseconds
@@ -229,7 +233,7 @@ const melody = ["C4", "E4", "G4", "C5"];
 function playMelody () {
 
   melody.forEach((note, index) => {
-    
+
     synth.triggerAttackRelease(note, "8n", Tone.now() + index * 0.25);
   });
 }
