@@ -1,19 +1,31 @@
 # My instrument
 
-**Play it here:** <!-- Paste your GitHub Pages link here, e.g. https://idbcourses.github.io/your-repo-name/ -->
+**Play it here:** https://idbcourses.github.io/ht26-a3-melitini-kladou/
 
-**Name:** <!-- Your name and MAU ID -->
+**Name:** Melitini Kladou / MAU ID: as5984
 
-<!-- One or two sentences: what kind of instrument is it, and what is it like to play? -->
+This instrument is controlled by dragging a circle around the screen. The speed of the pointer affects the sound, pitch, volume, and visual appearance. A square acts as a button that plays a short melody when clicked.
 
 ## How to play
 
 <!-- Fill in the table with a row for everything the player can do with the pointer: clicking, moving slowly or fast, moving in circles, holding still... Say what happens to the sound and to the shapes. If you added keys, give them rows too. -->
 
-| When you...  | The sound...                         | The shapes... |
-| ------------ | ------------------------------------ | ------------- |
-| Click or tap | Plays a C4 (the example: replace it) | Nothing yet   |
-|              |                                      |               |
+| When you...      | The sound...                         | The shapes...                   |
+| ------------     | ------------------------------------ | -----------------------         |
+| Click and        | Start a drone note                   | The circle follows the pointer  |
+| drage the circle |                                      |                                 |
+|                  |                                      |                                 |
+| Move slowly      | Plays lower notes and quiter sound   | The circle stays smaller        |
+|                  |                                      |                                 |
+|  Move fast       | Plays higher notes and becomes louder| The circle becomes larger       |
+|                  |                                      |                                 |
+| Keep moving      | Continues generating notes based on  | The circle grows and changes    |
+|                  | average speed                        | colour                          |
+| Release the      | The drone note stops                 | The circle stops moving         |
+| circle           |                                      |                                 |
+| Click the square | Plays a melody(C4,E4,G4,C5)          | The square stays in place       |
+
+
 
 <!-- Anything else a player needs to know: how to get started, a good thing to try first. -->
 
