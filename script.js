@@ -29,6 +29,9 @@ import { createShape } from "./shape.js";
 const settings = {
   squareSize: 150,
   maxSpeed: 10,
+  //Maximum number of recent speed values
+  //stored in the array
+
 };
 
 const circle = createShape();
@@ -166,7 +169,7 @@ const hue = Math.min(state.averageSpeed * 10000, 360);
 
 circle.setColour(hue, 100, 50);
  }
- 
+
  requestAnimationFrame(use);
 
 }
