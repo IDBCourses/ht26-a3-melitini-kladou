@@ -32,6 +32,7 @@ const settings = {
   //Maximum number of recent speed values
   //stored in the array
 
+
 };
 
 const circle = createShape();
@@ -44,15 +45,20 @@ const state = {
   pointer: {
     x: 0,
     y: 0,
+    //Previous position is stored so speed
+    //can be calculated from movement over time
     previousX: 0,
     previousY: 0,
   },
 
   speed: 0,
+  //Average speed is used instead of
+  //current speed to create smoother sound
   averageSpeed: 0,
+  //Total pointer movement
   totalDistance: 0,
 
-  //Stores recent speed for averaging
+  //Stores recent speed
   speeds: [],
 
   isDragging: false,
@@ -76,7 +82,7 @@ const droneNote = "C3";
 
 
 
-//Callback function
+//Calculates an average speed from the stored speed values
 function calculateAverageSpeed() {
 
   if (state.speeds.length === 0) {
@@ -85,6 +91,7 @@ function calculateAverageSpeed() {
   }
 
   let total = 0;
+  //forEach() loops through every speed value in the array
   state.speeds.forEach((speed) => {
     total += speed;
   });
@@ -96,7 +103,7 @@ function calculateAverageSpeed() {
 
 
 // ---------- Update ----------
-// Update the state. This is called every 100ms.Calculates the math based on pointer position
+// Update the state. This is called every 100ms.
 function update() {
   console.log("speed", state.averageSpeed);
 
@@ -104,8 +111,9 @@ function update() {
 
 
 
+//Faster movement = louder volume
 //Speed controls volume
-//If speed is high, volume is 0 (loud). If speed is 0, volume is -60 (silent)
+//If speed is high, volume is 0 (loud). If speed is 0, volume is -20
 let volume = -10 + state.averageSpeed * 20000;
 
 volume = Math.min(volume, 0);
@@ -116,24 +124,29 @@ synth.volume.rampTo(volume, 0.1);
 
 
 //Start drone when moving
+//passes a minimum threshold
 if (state.averageSpeed > 0.0005 && !dronePlaying) {
   synth.triggerAttack(droneNote);
   dronePlaying = true;
 }
 
-//Stop drone
+//Stop drone when movement
+//becomes very small
 if (state.averageSpeed <= 0.0001 && dronePlaying) {
   synth.triggerRelease(droneNote)
   dronePlaying = false;
 }
 
- //Melody notes
+//Movement speed controls pitch
+//Higher speed creates higher notes
  if (state.averageSpeed > 0.0001) {
   const frequency = 220 + state.averageSpeed * 40000;
 
   synth.triggerAttackRelease(frequency, "16n");
   }
 
+  //Slowly reduce the speed value
+  //when dragging stops to create a smoother fade-out effect
   if (!state.isDragging) {
     state.averageSpeed *= 0.9;
   }
@@ -163,7 +176,7 @@ function use() {
 //Circle grows with speed
   circle.setSize(100 + state.averageSpeed * 2000);
 
-//Circle: colour changes with speed
+//Speed is converted into a hue value so dragging changes the circle colour
 if (state.isDragging) {
 const hue = Math.min(state.averageSpeed * 10000, 360);
 
@@ -205,7 +218,7 @@ function pointerUp() {
 
 
 function pointerMove(event) {
-  //Record pointer positions
+  //Store previous position before updating
   state.pointer.previousX = state.pointer.x;
 
   state.pointer.previousY = state.pointer.y;
@@ -213,11 +226,13 @@ function pointerMove(event) {
   state.pointer.x = event.clientX / window.innerWidth;
   state.pointer.y = event.clientY / window.innerHeight;
 
+  //Distance formula used to calculate pointer movement speed
   const dx = state.pointer.x - state.pointer.previousX;
   const dy = state.pointer.y - state.pointer.previousY;
 
   state.speed = Math.hypot(dx, dy);
   state.totalDistance += state.speed;
+  //Store speed values so the program can process movement over time
   state.speeds.push(state.speed);
 
 
@@ -226,17 +241,18 @@ function pointerMove(event) {
   }
 
   calculateAverageSpeed();
+  //Only move the circle while it is being dragged
   if (state.isDragging) {
     circle.setPosition(state.pointer.x, state.pointer.y);
   }
 console.log(state.averageSpeed);
 
 }
-
+//Melody played when the square is clicked
 const melody = ["C4", "E4", "G4", "C5"];
 
 function playMelody () {
-
+//forEach() plays every note in the melody array
   melody.forEach((note, index) => {
 
     synth.triggerAttackRelease(note, "8n", Tone.now() + index * 0.25);
